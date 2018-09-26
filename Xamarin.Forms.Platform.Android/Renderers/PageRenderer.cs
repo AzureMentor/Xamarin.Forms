@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using Android.Content;
+using Android.OS;
+using Android.Support.V7.Widget;
 using Android.Views;
+using AView = Android.Views.View;
 
 namespace Xamarin.Forms.Platform.Android
 {
-	public class PageRenderer : VisualElementRenderer<Page>
+	public class PageRenderer : VisualElementRenderer<Page>, IOrderedTraversalController
 	{
 		public PageRenderer(Context context) : base(context)
 		{
@@ -24,6 +28,8 @@ namespace Xamarin.Forms.Platform.Android
 		}
 
 		IPageController PageController => Element as IPageController;
+
+		IOrderedTraversalController OrderedTraversalController => this;
 
 		double _previousHeight;
 
@@ -114,6 +120,55 @@ namespace Xamarin.Forms.Platform.Android
 		{
 			if (!string.IsNullOrEmpty(view.BackgroundImage))
 				this.SetBackground(Context.GetDrawable(view.BackgroundImage));
+		}
+
+		void IOrderedTraversalController.UpdateTraversalOrder()
+		{
+			// traversal order wasn't added until API 22
+			if ((int)Build.VERSION.SdkInt < 22)
+				return;
+
+			var children = Element.Descendants();
+			IDictionary<int, List<VisualElement>> tabIndexes = null;
+			int childrenWithTabStopsLessOne = 0;
+			AView firstTabStop = null;
+			foreach (var child in children)
+			{
+				if (child is VisualElement ve)
+				{
+					if (ve.GetRenderer().View is ITabStop tabStop)
+					{
+						var thisControl = tabStop.TabStop;
+
+						if (tabIndexes == null)
+						{
+							tabIndexes = ve.GetTabIndexesOnParentPage(out childrenWithTabStopsLessOne);
+							firstTabStop = TabStopExtensions.GetFirstTabStop(tabIndexes, childrenWithTabStopsLessOne);
+						}
+
+						// this element should be the first thing focused after the root
+						if (thisControl == firstTabStop)
+						{
+							thisControl.AccessibilityTraversalAfter = NoId;
+						}
+						else if (ve.IsTabStop)
+						{
+							AView control = ve.GetNextTabStop(forwardDirection: true,
+																tabIndexes: tabIndexes,
+																maxAttempts: childrenWithTabStopsLessOne);
+
+							if (control != null && control != firstTabStop)
+								control.AccessibilityTraversalAfter = thisControl.Id;
+						}
+					}
+				}
+			}
+		}
+
+		protected override void OnLayout(bool changed, int l, int t, int r, int b)
+		{
+			base.OnLayout(changed, l, t, r, b);
+			OrderedTraversalController.UpdateTraversalOrder();
 		}
 	}
 }

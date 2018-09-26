@@ -10,7 +10,7 @@ using Android.Runtime;
 
 namespace Xamarin.Forms.Platform.Android
 {
-	public abstract class VisualElementRenderer<TElement> : FormsViewGroup, IVisualElementRenderer, 
+	public abstract class VisualElementRenderer<TElement> : FormsViewGroup, IVisualElementRenderer,
 		IEffectControlProvider where TElement : VisualElement
 	{
 		readonly List<EventHandler<VisualElementChangedEventArgs>> _elementChangedHandlers = new List<EventHandler<VisualElementChangedEventArgs>>();
@@ -61,7 +61,7 @@ namespace Xamarin.Forms.Platform.Android
 			}
 
 			return base.DispatchTouchEvent(e);
-		}		  		
+		}
 
 		[Obsolete("This constructor is obsolete as of version 2.5. Please use VisualElementRenderer(Context) instead.")]
 		protected VisualElementRenderer() : this(Forms.Context)
@@ -138,32 +138,29 @@ namespace Xamarin.Forms.Platform.Android
 
 		protected bool TabStop { get; set; } = true;
 
-		protected void UpdateTabStop() => TabStop = Element.IsTabStop;
+		protected void UpdateTabStop()
+		{
+			TabStop = Element.IsTabStop;
+			UpdateParentPageTraversalOrder();
+		}
 
-		protected void UpdateTabIndex() => TabIndex = Element.TabIndex;
+		protected void UpdateTabIndex()
+		{
+			TabIndex = Element.TabIndex;
+			UpdateParentPageTraversalOrder();
+		}
 
 		public override AView FocusSearch(AView focused, [GeneratedEnum] FocusSearchDirection direction)
 		{
 			VisualElement element = Element as VisualElement;
-			int maxAttempts = 0;
-			var tabIndexes = element?.GetTabIndexesOnParentPage(out maxAttempts);
-			if (tabIndexes == null)
-				return null;
-
-			int tabIndex = element.TabIndex;
-			AView control = null;
-			int attempt = 0;
 			bool forwardDirection = !(
 				(direction & FocusSearchDirection.Backward) != 0 ||
 				(direction & FocusSearchDirection.Left) != 0 ||
 				(direction & FocusSearchDirection.Up) != 0);
 
-			do
-			{
-				element = element.FindNextElement(forwardDirection, tabIndexes, ref tabIndex);
-				var renderer = element.GetRenderer();
-				control = (renderer as ITabStop)?.TabStop;
-			} while (!(control?.Focusable == true || ++attempt >= maxAttempts));
+			var tabIndexes = element.GetTabIndexesOnParentPage(out int childrenWithTabStopsLessOne);
+
+			var control = element.GetNextTabStop(forwardDirection, tabIndexes, childrenWithTabStopsLessOne);
 
 			return control;
 		}
@@ -306,7 +303,7 @@ namespace Xamarin.Forms.Platform.Android
 
 			ElevationHelper.SetElevation(this, e.NewElement);
 		}
-		
+
 		protected virtual void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
 		{
 			if (e.PropertyName == VisualElement.BackgroundColorProperty.PropertyName)
@@ -325,6 +322,8 @@ namespace Xamarin.Forms.Platform.Android
 				UpdateTabStop();
 			else if (e.PropertyName == VisualElement.TabIndexProperty.PropertyName)
 				UpdateTabIndex();
+			else if (e.PropertyName == nameof(Element.Parent))
+				UpdateParentPageTraversalOrder();
 
 			ElementPropertyChanged?.Invoke(this, e);
 		}
@@ -339,9 +338,9 @@ namespace Xamarin.Forms.Platform.Android
 
 		static void UpdateLayout(IEnumerable<Element> children)
 		{
-			foreach (Element element in children)  	{
-				var visualElement = element as VisualElement;
-				if (visualElement == null)
+			foreach (Element element in children)
+			{
+				if (!(element is VisualElement visualElement))
 					continue;
 
 				IVisualElementRenderer renderer = Platform.GetRenderer(visualElement);
@@ -397,6 +396,16 @@ namespace Xamarin.Forms.Platform.Android
 		protected virtual void UpdateBackgroundColor()
 		{
 			SetBackgroundColor(Element.BackgroundColor.ToAndroid());
+		}
+
+		void UpdateParentPageTraversalOrder()
+		{
+			IViewParent parentRenderer = Parent;
+			while (parentRenderer != null && !(parentRenderer is IOrderedTraversalController))
+				parentRenderer = parentRenderer.Parent;
+
+			if (parentRenderer is IOrderedTraversalController controller)
+				controller.UpdateTraversalOrder();
 		}
 
 		internal virtual void SendVisualElementInitialized(VisualElement element, AView nativeView)
