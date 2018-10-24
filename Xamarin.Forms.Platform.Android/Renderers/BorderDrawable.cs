@@ -18,7 +18,7 @@ namespace Xamarin.Forms.Platform.Android
 		float _paddingLeft;
 		float _paddingTop;
 		Color _defaultColor;
-
+		readonly bool _drawOutlineWithBackground;
 		AColor _shadowColor;
 		float _shadowDx;
 		float _shadowDy;
@@ -36,11 +36,12 @@ namespace Xamarin.Forms.Platform.Android
 			set { _paddingTop = value; }
 		}
 
-		public BorderDrawable(Func<double, float> convertToPixels, Color defaultColor)
+		public BorderDrawable(Func<double, float> convertToPixels, Color defaultColor, bool drawOutlineWithBackground)
 		{
 			_convertToPixels = convertToPixels;
 			_pressed = false;
 			_defaultColor = defaultColor;
+			_drawOutlineWithBackground = drawOutlineWithBackground;
 		}
 
 		public IBorderController BorderController
@@ -74,6 +75,9 @@ namespace Xamarin.Forms.Platform.Android
 				_normalBitmap.Height != height ||
 				_normalBitmap.Width != width)
 				Reset();
+
+			if (!_drawOutlineWithBackground && BorderController.BackgroundColor == Color.Default)
+				return;
 
 			Bitmap bitmap = null;
 			if (GetState().Contains(global::Android.Resource.Attribute.StatePressed))
@@ -171,7 +175,8 @@ namespace Xamarin.Forms.Platform.Android
 			using (var canvas = new Canvas(bitmap))
 			{
 				DrawBackground(canvas, width, height, pressed);
-				DrawOutline(canvas, width, height);
+				if (_drawOutlineWithBackground)
+					DrawOutline(canvas, width, height);
 			}
 
 			return bitmap;
@@ -193,7 +198,7 @@ namespace Xamarin.Forms.Platform.Android
 			paint.Color = pressed ? PressedBackgroundColor.ToAndroid() : BackgroundColor.ToAndroid();
 			paint.SetStyle(Paint.Style.Fill);
 			paint.SetShadowLayer(_shadowRadius, _shadowDx, _shadowDy, _shadowColor);
-			
+
 			canvas.DrawPath(path, paint);
 		}
 
@@ -207,7 +212,7 @@ namespace Xamarin.Forms.Platform.Android
 			return _convertToPixels(cornerRadius);
 		}
 
-		void DrawOutline(Canvas canvas, int width, int height)
+		public void DrawOutline(Canvas canvas, int width, int height)
 		{
 			if (BorderController.BorderWidth <= 0)
 				return;

@@ -21,11 +21,19 @@ namespace Xamarin.Forms.Platform.Android
 		IBorderVisualElementRenderer _renderer;
 		VisualElement Element => _renderer?.Element;
 		AView Control => _renderer?.View;
+		readonly bool _drawOutlineWithBackground;
 
-		public BorderBackgroundManager(IBorderVisualElementRenderer renderer)
+		public bool DrawOutlineWithBackground { get; set; } = true;
+
+		public BorderBackgroundManager(IBorderVisualElementRenderer renderer) : this(renderer, true)
+		{
+		}
+
+		public BorderBackgroundManager(IBorderVisualElementRenderer renderer, bool drawOutlineWithBackground)
 		{
 			_renderer = renderer;
 			_renderer.ElementChanged += OnElementChanged;
+			_drawOutlineWithBackground = drawOutlineWithBackground;
 		}
 
 		void OnElementChanged(object sender, VisualElementChangedEventArgs e)
@@ -81,7 +89,7 @@ namespace Xamarin.Forms.Platform.Android
 			else
 			{
 				if (_backgroundDrawable == null)
-					_backgroundDrawable = new BorderDrawable(Control.Context.ToPixels, Forms.GetColorButtonNormal(Control.Context));
+					_backgroundDrawable = new BorderDrawable(Control.Context.ToPixels, Forms.GetColorButtonNormal(Control.Context), _drawOutlineWithBackground);
 
 				_backgroundDrawable.BorderController = BorderElement;
 

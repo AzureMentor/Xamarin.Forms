@@ -11,6 +11,9 @@ using AMotionEventActions = Android.Views.MotionEventActions;
 using AColor = Android.Graphics.Color;
 using Xamarin.Forms.PlatformConfiguration.AndroidSpecific;
 using AStateListDrawable = Android.Graphics.Drawables.StateListDrawable;
+using ARect = Android.Graphics.Rect;
+using Android.Graphics.Drawables;
+using Android.Graphics;
 
 namespace Xamarin.Forms.Platform.Android.FastRenderers
 {
@@ -68,7 +71,7 @@ namespace Xamarin.Forms.Platform.Android.FastRenderers
 			OnFocusChangeListener = this;
 
 			Tag = this;
-			_backgroundTracker = new BorderBackgroundManager(this);
+			_backgroundTracker = new BorderBackgroundManager(this, false);
 		}
 		protected override void Dispose(bool disposing)
 		{
@@ -160,6 +163,7 @@ namespace Xamarin.Forms.Platform.Android.FastRenderers
 			{
 				_tracker = new VisualElementTracker(this);
 				ImageElementManager.Init(this);
+
 			}
 
 			if (_visualElementRenderer == null)
@@ -175,6 +179,24 @@ namespace Xamarin.Forms.Platform.Android.FastRenderers
 
 			ElementChanged?.Invoke(this, new VisualElementChangedEventArgs(oldElement, ImageButton));
 			ImageButton?.SendViewInitialized(Control);
+		}
+
+		public override void Draw(Canvas canvas)
+		{
+			base.Draw(canvas);
+			var background = Background;
+						
+			if (background is RippleDrawable rd)
+			{				
+				if (rd.GetDrawable(0) is BorderDrawable bd)
+				{
+					bd.DrawOutline(canvas, canvas.Width, canvas.Height);
+				}
+			}
+			else if (background is BorderDrawable bd)
+			{
+				bd.DrawOutline(canvas, canvas.Width, canvas.Height);
+			}
 		}
 
 		void IVisualElementRenderer.SetLabelFor(int? id)
