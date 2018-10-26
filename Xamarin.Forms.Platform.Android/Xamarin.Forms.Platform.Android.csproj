@@ -143,7 +143,7 @@
     <Compile Include="ExportImageSourceHandlerAttribute.cs" />
     <Compile Include="ExportRendererAttribute.cs" />
     <Compile Include="Extensions\FlowDirectionExtensions.cs" />
-    <Compile Include="FastRenderers\ImageButtonRenderer.cs" />
+    <Compile Include="AppCompat\ImageButtonRenderer.cs" />
     <Compile Include="FastRenderers\ImageElementManager.cs" />
     <Compile Include="GestureManager.cs" />
     <Compile Include="FastRenderers\LabelRenderer.cs" />

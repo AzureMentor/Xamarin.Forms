@@ -14,8 +14,9 @@ using AStateListDrawable = Android.Graphics.Drawables.StateListDrawable;
 using ARect = Android.Graphics.Rect;
 using Android.Graphics.Drawables;
 using Android.Graphics;
+using Xamarin.Forms.Platform.Android.FastRenderers;
 
-namespace Xamarin.Forms.Platform.Android.FastRenderers
+namespace Xamarin.Forms.Platform.Android.AppCompat
 {
 	internal sealed class ImageButtonRenderer :
 		AppCompatImageButton,
@@ -95,9 +96,9 @@ namespace Xamarin.Forms.Platform.Android.FastRenderers
 				{
 					ImageButton.PropertyChanged -= OnElementPropertyChanged;
 
-					if (Platform.GetRenderer(ImageButton) == this)
+					if (Android.Platform.GetRenderer(ImageButton) == this)
 					{
-						ImageButton.ClearValue(Platform.RendererProperty);
+						ImageButton.ClearValue(Android.Platform.RendererProperty);
 					}
 
 					ImageButton = null;
@@ -185,9 +186,9 @@ namespace Xamarin.Forms.Platform.Android.FastRenderers
 		{
 			base.Draw(canvas);
 			var background = Background;
-						
+
 			if (background is RippleDrawable rd)
-			{				
+			{
 				if (rd.GetDrawable(0) is BorderDrawable bd)
 				{
 					bd.DrawOutline(canvas, canvas.Width, canvas.Height);
